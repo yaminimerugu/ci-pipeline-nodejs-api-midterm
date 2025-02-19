@@ -64,8 +64,9 @@ jobs:
       # Build and push Docker image
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest
+          IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/nodejs-api:${{ github.sha }}"
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
 
   deploy:
     runs-on: ubuntu-latest
@@ -80,3 +81,4 @@ jobs:
         run: |
           echo "Deploying Docker container to your server..."
           # Add your deployment commands here (e.g., SSH into your server and run `docker run` or `docker-compose`)
+          # Example: docker run -d -p 80:3000 $IMAGE_NAME
