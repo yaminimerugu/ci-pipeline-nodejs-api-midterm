@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI Pipeline for Node.js API
 
 on:
   push:
@@ -13,22 +13,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # Checkout the repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
+      # Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '14'
 
+      # Install dependencies
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
 
+      # Run tests
       - name: Run tests
-        run: npm test
+        run: |
+          npm test
 
-      - name: Archive test results
-        uses: actions/upload-artifact@v4
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      # Checkout code again for Docker context
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Cache Docker layers to speed up subsequent builds
+      - name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          name: test-results
-          path: reports/
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # Log in to Docker Hub using GitHub secrets
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Build and push Docker image
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      # Checkout code again for deployment
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Deploy to your server (adjust this part as per your deployment process)
+      - name: Deploy to server
+        run: |
+          echo "Deploying Docker container to your server..."
+          # Add your deployment commands here (e.g., SSH into your server and run `docker run` or `docker-compose`)
